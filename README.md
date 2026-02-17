@@ -1,0 +1,469 @@
+# SEO Intent Analyzer
+
+A powerful web application that analyzes search intent by comparing your target page against the top 5 ranking competitors for any keyword, then provides actionable recommendations to help you rank #1.
+
+## Features
+
+- **Search Intent Analysis**: Automatically classifies search intent (informational, transactional, navigational, commercial)
+- **Competitor Analysis**: Scrapes and analyzes the top 5 Google results for your target keyword
+- **Pattern Detection**: Identifies common elements and patterns across top-ranking pages
+- **Gap Analysis**: Compares your page against competitors to find critical gaps
+- **Actionable Recommendations**: Provides prioritized, specific recommendations to improve rankings
+- **Multi-LLM Support**: Works with both Anthropic Claude and OpenAI GPT models
+- **Smart Caching**: Caches search results for 24 hours to save API costs
+- **Markdown Reports**: Generates comprehensive, downloadable reports
+
+## Technology Stack
+
+- **Framework**: Next.js 14 (App Router, TypeScript)
+- **Search API**: SerpAPI (Google search results)
+- **Web Scraping**: Axios + Cheerio (with optional ScrapingBee for anti-bot bypass)
+- **LLM Providers**:
+  - Anthropic (Claude Opus, Sonnet, Haiku)
+  - OpenAI (GPT-4, GPT-4 Turbo, GPT-3.5)
+- **Styling**: Tailwind CSS
+- **Report Format**: Markdown with React Markdown renderer
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- API Keys:
+  - [SerpAPI](https://serpapi.com/) - For Google search results
+  - [Anthropic](https://console.anthropic.com/) - For Claude models (optional)
+  - [OpenAI](https://platform.openai.com/) - For GPT models (optional)
+  - [ScrapingBee](https://www.scrapingbee.com/) - For bypassing anti-bot protection (optional but recommended)
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd seo-intent
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create a `.env` file in the root directory:
+```bash
+cp .env.example .env
+```
+
+4. Add your API keys to `.env`:
+```env
+# Required
+SERPAPI_API_KEY=your_serpapi_key_here
+
+# At least one LLM provider is required
+ANTHROPIC_API_KEY=your_anthropic_key_here
+OPENAI_API_KEY=your_openai_key_here
+
+# Optional but HIGHLY RECOMMENDED: ScrapingBee for bypassing anti-bot protection
+# Get your API key from https://www.scrapingbee.com/
+# Without this, many sites (Cloudflare-protected, etc.) will return 403 errors
+USE_SCRAPINGBEE=true
+SCRAPINGBEE_API_KEY=your_scrapingbee_key_here
+
+# Optional: Caching settings (recommended defaults shown)
+# Caching saves money by avoiding repeated API calls for the same data
+ENABLE_SERP_CACHE=true         # Cache Google search results
+SERP_CACHE_TTL_HOURS=24
+ENABLE_SCRAPE_CACHE=true       # Cache scraped page data (saves ScrapingBee credits!)
+SCRAPE_CACHE_TTL_HOURS=24
+CACHE_DIR=.cache
+
+# Optional: Rate limiting
+RATE_LIMIT_DELAY_MS=1000
+MAX_CONCURRENT_REQUESTS=3
+```
+
+## Usage
+
+### Development
+
+Start the development server:
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Production
+
+Build and start the production server:
+```bash
+npm run build
+npm start
+```
+
+### Using the Application
+
+1. **Enter your target keyword** - The keyword you want to rank for
+2. **Enter your page URL** - The page you want to optimize
+3. **Select an LLM model** - Choose based on your needs:
+   - **Claude Sonnet 4.5** (Recommended) - Best balance of quality and speed
+   - **Claude Opus 4.5** - Most powerful, best for complex analysis
+   - **Claude Haiku 4.5** - Fastest and most economical
+   - **GPT-4 Turbo** - High quality OpenAI option
+4. **Click "Analyze SEO Intent"** - Wait 30-60 seconds for results
+5. **Review the report** - Get actionable recommendations
+6. **Download the report** - Save as Markdown for reference
+
+## How It Works
+
+The analyzer follows a 5-stage pipeline:
+
+### Stage 1: Search & Scrape
+- Fetches top 5 Google results using SerpAPI
+- Scrapes HTML content from each page (uses ScrapingBee if enabled to bypass anti-bot protection)
+- Extracts SEO elements (title, meta, headings, content, schema, etc.)
+- Falls back to direct scraping if ScrapingBee is disabled or fails
+
+### Stage 2: Intent Analysis
+- Analyzes search intent from top results
+- Classifies as informational, transactional, navigational, or commercial
+- Identifies user goals and buyer journey stage
+
+### Stage 3: Competitor Analysis
+- Analyzes each top-ranking page individually
+- Identifies strengths, content type, and key elements
+- Assesses content depth and target audience
+
+### Stage 4: Pattern Detection
+- Finds common patterns across top 3+ pages
+- Analyzes content length, structure, and elements
+- Identifies "must-have" features for ranking
+
+### Stage 5: Gap Analysis & Recommendations
+- Compares your page against competitor patterns
+- Identifies critical gaps and opportunities
+- Generates prioritized, actionable recommendations
+
+## Caching System
+
+⚠️ **PRODUCTION WARNING**: File cache only works locally! For Vercel/Netlify/Lambda → Use Redis. See [CACHING_SUMMARY.md](./CACHING_SUMMARY.md)
+
+The app includes a dual-layer caching system that saves both search results and scraped page data:
+
+**Local Development**: File-based cache (`.cache/` directory) ✅ Already working
+**Production Hosting**: Redis cache (requires `REDIS_URL`) 🚀 Required for deployment
+
+### SerpAPI Response Caching
+- **Why**: SerpAPI charges per search (~$0.01-0.03/search)
+- **How**: Search results are cached by keyword + date
+- **TTL**: 24 hours (configurable via `SERP_CACHE_TTL_HOURS`)
+- **Enable/Disable**: Set `ENABLE_SERP_CACHE=true/false`
+
+### Scraped Page Data Caching (NEW!)
+- **Why**: ScrapingBee charges per page (~$0.01-0.02/page). Caching saves significant costs!
+- **How**: Scraped page data (HTML extraction results) cached by URL + date
+- **TTL**: 24 hours (configurable via `SCRAPE_CACHE_TTL_HOURS`)
+- **Enable/Disable**: Set `ENABLE_SCRAPE_CACHE=true/false`
+- **Benefit**: Analyzing the same pages multiple times (e.g., testing different target URLs) only scrapes once per day
+
+### Cache Details
+- **Location**: `.cache/` directory (gitignored)
+- **Format**: JSON files with MD5 hashed keys
+- **Clear cache**: Delete `.cache/` directory or individual files
+
+### Cost Savings Examples
+
+**First analysis** for "best crypto to mine":
+- SerpAPI: $0.01
+- ScrapingBee: 6 pages × $0.01 = $0.06
+- LLM: ~$0.20
+- **Total: ~$0.27**
+
+**Second analysis** same day (cached):
+- SerpAPI: $0 (cached)
+- ScrapingBee: $0 (cached)
+- LLM: ~$0.20
+- **Total: ~$0.20 (saves $0.07 or 26%)**
+
+**Third analysis** with different target URL, same keyword:
+- SerpAPI: $0 (cached)
+- ScrapingBee: $0.01 (5 competitors cached, 1 new target)
+- LLM: ~$0.20
+- **Total: ~$0.21 (saves $0.06 or 22%)**
+
+**Recommendation**: Keep both caching options enabled to maximize savings, especially when experimenting with different configurations.
+
+## ScrapingBee Integration (Recommended)
+
+### Why Use ScrapingBee?
+
+Many modern websites use anti-bot protection (Cloudflare, DataDome, PerimeterX, etc.) that blocks automated scrapers. Without ScrapingBee, you'll commonly see:
+- **403 Forbidden** errors from Cloudflare-protected sites
+- **404 Not Found** when sites detect bots
+- JavaScript-rendered content that doesn't load
+
+ScrapingBee solves this by:
+- **Bypassing anti-bot systems** using real browser automation
+- **Rotating IP addresses** to avoid rate limits
+- **Handling JavaScript rendering** for dynamic content
+- **Supporting residential proxies** for maximum reliability
+
+### How to Enable:
+
+1. **Sign up** at [scrapingbee.com](https://www.scrapingbee.com/) (1,000 free credits)
+2. **Get your API key** from the dashboard
+3. **Add to `.env`**:
+   ```env
+   USE_SCRAPINGBEE=true
+   SCRAPINGBEE_API_KEY=your_key_here
+   ```
+4. **Restart** your dev server
+
+### Success Rate Comparison:
+
+| Scraping Method | Success Rate | Typical Failures |
+|----------------|--------------|------------------|
+| Direct (Axios) | 40-60% | Cloudflare, bot detection, JS sites |
+| ScrapingBee | 95-99% | Rarely fails, handles most protection |
+
+### Cost vs. Benefit:
+
+- **Extra cost**: ~$0.06-0.12 per analysis (6 pages × $0.01/page, first run)
+- **With caching**: Only new pages cost money. Repeat analyses within 24h are free!
+- **Benefit**: 2-3x higher success rate, fewer manual interventions
+- **Free tier**: 1,000 credits = ~200 page scrapes (or 33 full analyses)
+
+**Example**: Analyze 5 different target URLs for the same keyword:
+- First analysis: 5 competitors + 1 target = 6 pages = $0.06
+- Analyses 2-5: Only 1 new target page each = 4 pages = $0.04
+- **Total**: 10 pages over 5 analyses instead of 30 pages (saves $0.20!)
+
+**Recommendation**: Enable both ScrapingBee AND caching for maximum savings and reliability.
+
+## Cost Estimation
+
+### Per Analysis (First Run):
+- **SerpAPI**: ~$0.01-0.03 per search
+- **ScrapingBee** (if enabled): ~$0.01-0.02 per page × 6 pages (5 competitors + target) = ~$0.06-0.12
+- **LLM costs**:
+  - Claude Haiku: ~$0.05-0.10
+  - Claude Sonnet: ~$0.15-0.30
+  - Claude Opus: ~$0.50-1.00
+  - GPT-3.5: ~$0.05-0.10
+  - GPT-4: ~$0.30-0.60
+  - GPT-4 Turbo: ~$0.20-0.40
+
+**Total per analysis** (first run, no cache):
+- **Without ScrapingBee**: $0.10-$1.03 (depending on model)
+- **With ScrapingBee**: $0.16-$1.15 (more reliable, bypasses bot protection)
+
+**Cached analyses** (within 24h, with ENABLE_SERP_CACHE and ENABLE_SCRAPE_CACHE enabled):
+- **Same keyword + same target**: Only LLM costs (~$0.05-0.45) - saves ~70%!
+- **Same keyword + different target**: LLM + 1 page scrape (~$0.06-0.47) - saves ~60%!
+- **Different keyword**: Full cost (new SERP + new scrapes)
+
+### Free Tiers:
+- **SerpAPI**: 100 free searches/month
+- **ScrapingBee**: 1,000 free API credits (~200 page scrapes)
+- **Anthropic/OpenAI**: Pay-as-you-go (no free tier for production use)
+
+### Recommendation:
+Enable ScrapingBee for the extra $0.06-0.12 per analysis. It significantly increases success rate by bypassing Cloudflare and other anti-bot systems. Without it, expect 40-60% of pages to fail with 403 errors.
+
+## Project Structure
+
+```
+seo-intent/
+├── app/                      # Next.js app directory
+│   ├── api/
+│   │   ├── analyze/         # Main analysis endpoint
+│   │   └── health/          # Health check endpoint
+│   ├── page.tsx             # Home page
+│   ├── layout.tsx           # Root layout
+│   └── globals.css          # Global styles
+├── components/              # React components
+│   ├── AnalysisForm.tsx
+│   ├── ModelSelector.tsx
+│   ├── ProgressIndicator.tsx
+│   └── ResultsDisplay.tsx
+├── lib/                     # Core library code
+│   ├── analyzer/            # Analysis engine
+│   ├── cache/              # File-based caching
+│   ├── llm/                # LLM provider abstraction
+│   ├── report/             # Markdown report generation
+│   ├── scraper/            # Web scraping
+│   ├── search/             # SerpAPI integration
+│   └── utils/              # Utilities
+└── .cache/                 # Cached search results (gitignored)
+```
+
+## API Endpoints
+
+### POST /api/analyze
+
+Analyze a keyword and generate recommendations.
+
+**Request:**
+```json
+{
+  "keyword": "best project management software",
+  "targetUrl": "https://example.com/project-management",
+  "model": "claude-sonnet-4-5"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "report": {
+    "keyword": "best project management software",
+    "targetUrl": "https://example.com/project-management",
+    "analyzedAt": "2024-01-15T10:30:00.000Z",
+    "model": "claude-sonnet-4-5",
+    "intentAnalysis": { ... },
+    "searchResults": [ ... ],
+    "competitorAnalyses": [ ... ],
+    "patternAnalysis": { ... },
+    "targetPageData": { ... },
+    "recommendations": { ... },
+    "markdown": "# SEO Intent Analysis..."
+  }
+}
+```
+
+### GET /api/health
+
+Check API health and configuration.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "env": {
+    "hasAnthropicKey": true,
+    "hasOpenAIKey": true,
+    "hasSerpAPIKey": true,
+    "cacheEnabled": true
+  }
+}
+```
+
+## Development
+
+### Running Tests
+
+```bash
+npm test
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+### Type Checking
+
+```bash
+npx tsc --noEmit
+```
+
+## Troubleshooting
+
+### "SERPAPI_API_KEY environment variable is not set"
+- Make sure you've created a `.env` file with your SerpAPI key
+
+### "No organic results found"
+- The keyword may not have organic results (try a different keyword)
+- SerpAPI may have rate limited you (wait a few minutes)
+
+### "Failed to fetch [URL]" or "HTTP 403 Forbidden"
+- The website is blocking automated scrapers (Cloudflare, bot protection, etc.)
+- **Solution:** Enable ScrapingBee in your `.env`:
+  ```env
+  USE_SCRAPINGBEE=true
+  SCRAPINGBEE_API_KEY=your_key_here
+  ```
+- Get a free API key from [scrapingbee.com](https://www.scrapingbee.com/) (1000 free credits)
+- ScrapingBee bypasses most anti-bot protection and handles JavaScript rendering
+- The website may be down or slow to respond
+- Try with a different target URL
+
+### Analysis takes too long
+- Use a faster model (Claude Haiku or GPT-3.5)
+- Check your internet connection
+- Some pages take longer to scrape (large content, slow servers)
+
+### High API costs
+- Use Claude Haiku or GPT-3.5 for routine analyses
+- Enable caching (`ENABLE_SERP_CACHE=true`) to avoid repeated SerpAPI calls
+- Use Claude Opus or GPT-4 only when you need the highest quality analysis
+
+## Deployment
+
+⚠️ **IMPORTANT**: File-based caching only works locally. **For production, you MUST use Redis**. See [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) for complete setup guide.
+
+### Quick Production Setup
+
+1. **Choose Redis provider** (Upstash recommended for Vercel):
+   - [Upstash](https://upstash.com/) - Free tier, serverless-optimized
+   - [Vercel KV](https://vercel.com/storage/kv) - Integrated with Vercel
+   - [Redis Cloud](https://redis.com/cloud/) - Official Redis service
+
+2. **Get Redis URL** from your provider
+
+3. **Add environment variables** to your hosting platform:
+   ```env
+   REDIS_URL=redis://your-redis-url
+   SERPAPI_API_KEY=your_key
+   ANTHROPIC_API_KEY=your_key
+   SCRAPINGBEE_API_KEY=your_key
+   ```
+
+4. **Deploy** - Redis cache is automatically enabled!
+
+### Vercel (Recommended)
+
+1. Create Vercel KV database:
+   ```bash
+   vercel storage create kv
+   ```
+2. Push your code to GitHub
+3. Import project in Vercel
+4. Add remaining environment variables (API keys)
+5. Deploy
+
+Note: Vercel has a 60-second timeout on hobby plan. Upgrade to Pro for longer timeouts.
+
+### Other Platforms (Netlify, Railway, Render)
+
+See [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) for detailed deployment guides.
+
+### Docker
+
+```bash
+docker build -t seo-intent .
+docker run -p 3000:3000 --env-file .env seo-intent
+```
+
+## Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+MIT
+
+## Support
+
+For issues, questions, or feature requests, please open an issue on GitHub.
+
+## Acknowledgments
+
+- [SerpAPI](https://serpapi.com/) for search results
+- [Anthropic](https://anthropic.com/) for Claude models
+- [OpenAI](https://openai.com/) for GPT models
+- [Next.js](https://nextjs.org/) for the framework
