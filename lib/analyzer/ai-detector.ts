@@ -57,8 +57,8 @@ function buildAIDetectionPrompt(keyword: string, pageData: PageData): string {
 ${contentSample}
 
 # Headings Structure
-${pageData.headings.h1.length > 0 ? `H1: ${pageData.headings.h1.join(', ')}` : 'No H1'}
-${pageData.headings.h2.length > 0 ? `H2s: ${pageData.headings.h2.slice(0, 5).join(', ')}${pageData.headings.h2.length > 5 ? '...' : ''}` : 'No H2s'}
+${pageData.h1Tags && pageData.h1Tags.length > 0 ? `H1: ${pageData.h1Tags.join(', ')}` : 'No H1'}
+${pageData.h2Tags && pageData.h2Tags.length > 0 ? `H2s: ${pageData.h2Tags.slice(0, 5).join(', ')}${pageData.h2Tags.length > 5 ? '...' : ''}` : 'No H2s'}
 
 # Analysis Instructions
 
@@ -116,14 +116,14 @@ Be thorough and specific in your analysis. Provide concrete examples from the co
 }
 
 function extractContentSample(pageData: PageData): string {
-  const { content, wordCount } = pageData;
+  const { contentText, wordCount } = pageData;
 
-  if (!content || content.trim().length === 0) {
+  if (!contentText || contentText.trim().length === 0) {
     return '[No content available for analysis]';
   }
 
   // Take first ~1000 words for analysis
-  const words = content.split(/\s+/);
+  const words = contentText.split(/\s+/);
   const sampleWords = words.slice(0, Math.min(1000, wordCount || words.length));
   const sample = sampleWords.join(' ');
 
