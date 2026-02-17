@@ -4,6 +4,7 @@ import {
   generateIntentSection,
   generateTopPagesSection,
   generatePatternsSection,
+  generateAIDetectionSection,
   generateYourPageSection,
   generateRecommendationsSection,
 } from './templates';
@@ -17,6 +18,7 @@ export function generateMarkdownReport(report: AnalysisReport): string {
     generateIntentSection(report),
     generateTopPagesSection(report),
     generatePatternsSection(report),
+    generateAIDetectionSection(report),
     generateYourPageSection(report),
     generateRecommendationsSection(report),
   ];

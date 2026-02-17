@@ -4,10 +4,11 @@ import { extractPageData, extractMultiplePages } from '../scraper/extractor';
 import { analyzeIntent } from './intent';
 import { analyzeCompetitors } from './competitor';
 import { detectPatterns, generateRecommendations } from './comparator';
+import { detectAIContent } from './ai-detector';
 import { AnalysisReport } from './types';
 
 /**
- * Main orchestrator that runs the complete 5-stage analysis pipeline
+ * Main orchestrator that runs the complete 6-stage analysis pipeline
  */
 export async function runAnalysis(
   keyword: string,
@@ -86,14 +87,20 @@ export async function runAnalysis(
     const competitorAnalyses = await analyzeCompetitors(keyword, competitorPages, llmProvider);
 
     // Stage 4: Pattern Detection
-    onProgress?.('Detecting common patterns', 70);
-    console.log('\n[Stage 4/5] Detecting patterns...');
+    onProgress?.('Detecting common patterns', 60);
+    console.log('\n[Stage 4/6] Detecting patterns...');
 
     const patternAnalysis = await detectPatterns(keyword, competitorAnalyses, llmProvider);
 
-    // Stage 5: Gap Analysis & Recommendations
+    // Stage 5: AI Content Detection
+    onProgress?.('Analyzing content for AI generation', 75);
+    console.log('\n[Stage 5/6] Detecting AI-generated content...');
+
+    const aiContentAnalysis = await detectAIContent(keyword, targetPageData, llmProvider);
+
+    // Stage 6: Gap Analysis & Recommendations
     onProgress?.('Generating recommendations', 90);
-    console.log('\n[Stage 5/5] Generating recommendations...');
+    console.log('\n[Stage 6/6] Generating recommendations...');
 
     const recommendations = await generateRecommendations(
       keyword,
@@ -118,6 +125,7 @@ export async function runAnalysis(
       competitorAnalyses,
       patternAnalysis,
       targetPageData,
+      aiContentAnalysis,
       recommendations,
     };
   } catch (error) {

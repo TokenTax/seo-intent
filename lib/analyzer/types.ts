@@ -56,6 +56,20 @@ export interface RecommendationAnalysis {
   technicalSEO: string[];
 }
 
+export interface AIContentAnalysis {
+  isLikelyAIGenerated: boolean;
+  confidenceScore: number; // 0-100
+  indicators: {
+    category: string;
+    signal: string;
+    impact: 'strong' | 'moderate' | 'weak';
+  }[];
+  humanLikeQualities: string[];
+  aiLikeQualities: string[];
+  recommendation: string;
+  summary: string;
+}
+
 export interface AnalysisReport {
   keyword: string;
   targetUrl: string;
@@ -67,5 +81,6 @@ export interface AnalysisReport {
   competitorAnalyses: PageAnalysis[];
   patternAnalysis: PatternAnalysis;
   targetPageData: PageData;
+  aiContentAnalysis: AIContentAnalysis;
   recommendations: RecommendationAnalysis;
 }

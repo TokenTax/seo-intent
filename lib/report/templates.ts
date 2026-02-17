@@ -138,6 +138,81 @@ export function generatePatternsSection(report: AnalysisReport): string {
 }
 
 /**
+ * Generate AI content detection section
+ */
+export function generateAIDetectionSection(report: AnalysisReport): string {
+  const ai = report.aiContentAnalysis;
+
+  let section = `## AI Content Detection\n\n`;
+
+  // Overall verdict with visual indicator
+  const verdict = ai.isLikelyAIGenerated ? '🤖 AI-Generated' : '✅ Human-Written';
+  const confidenceEmoji = ai.confidenceScore >= 80 ? '🔴' : ai.confidenceScore >= 60 ? '🟡' : '🟢';
+
+  section += `### Overall Assessment\n\n`;
+  section += `**Verdict:** ${verdict}\n`;
+  section += `**Confidence:** ${confidenceEmoji} ${ai.confidenceScore}% ${ai.confidenceScore >= 80 ? '(High)' : ai.confidenceScore >= 60 ? '(Moderate)' : '(Low)'}\n\n`;
+  section += `**Summary:** ${ai.summary}\n\n`;
+
+  // Key indicators
+  if (ai.indicators.length > 0) {
+    section += `### Key Indicators\n\n`;
+
+    const strongIndicators = ai.indicators.filter(i => i.impact === 'strong');
+    const moderateIndicators = ai.indicators.filter(i => i.impact === 'moderate');
+    const weakIndicators = ai.indicators.filter(i => i.impact === 'weak');
+
+    if (strongIndicators.length > 0) {
+      section += `#### Strong Signals\n\n`;
+      strongIndicators.forEach(indicator => {
+        section += `- **${indicator.category}:** ${indicator.signal}\n`;
+      });
+      section += `\n`;
+    }
+
+    if (moderateIndicators.length > 0) {
+      section += `#### Moderate Signals\n\n`;
+      moderateIndicators.forEach(indicator => {
+        section += `- **${indicator.category}:** ${indicator.signal}\n`;
+      });
+      section += `\n`;
+    }
+
+    if (weakIndicators.length > 0) {
+      section += `#### Weak Signals\n\n`;
+      weakIndicators.forEach(indicator => {
+        section += `- **${indicator.category}:** ${indicator.signal}\n`;
+      });
+      section += `\n`;
+    }
+  }
+
+  // Human-like qualities
+  if (ai.humanLikeQualities.length > 0) {
+    section += `### Human-Like Qualities\n\n`;
+    ai.humanLikeQualities.forEach(quality => {
+      section += `- ✅ ${quality}\n`;
+    });
+    section += `\n`;
+  }
+
+  // AI-like qualities
+  if (ai.aiLikeQualities.length > 0) {
+    section += `### AI-Like Qualities\n\n`;
+    ai.aiLikeQualities.forEach(quality => {
+      section += `- ⚠️ ${quality}\n`;
+    });
+    section += `\n`;
+  }
+
+  // Recommendation
+  section += `### Recommendation\n\n`;
+  section += `${ai.recommendation}\n\n`;
+
+  return section;
+}
+
+/**
  * Generate your page analysis section
  */
 export function generateYourPageSection(report: AnalysisReport): string {
