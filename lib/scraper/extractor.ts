@@ -1,7 +1,8 @@
 import { fetcher } from './fetcher';
-import { parseHTML, cleanText, countWords } from './parser';
+import { cleanText, countWords } from './parser';
 import { PageData } from './types';
 import { cache } from '../cache/cache-factory';
+import * as cheerio from 'cheerio';
 import crypto from 'crypto';
 
 /**
@@ -35,29 +36,11 @@ export async function extractPageData(url: string, useCache: boolean = true): Pr
   try {
     // Fetch HTML
     const html = await fetcher.fetchHTML(url);
-    const { $ } = parseHTML(html);
 
-    // Extract title
-    const title = $('title').first().text().trim() ||
-                  $('meta[property="og:title"]').attr('content') ||
-                  $('h1').first().text().trim() ||
-                  'No title found';
+    // Parse with Cheerio but DON'T remove scripts yet (we need them for schema extraction)
+    const $ = cheerio.load(html);
 
-    // Extract meta description
-    const metaDescription = $('meta[name="description"]').attr('content') ||
-                           $('meta[property="og:description"]').attr('content') ||
-                           '';
-
-    // Extract heading tags
-    const h1Tags = $('h1').map((_, el) => cleanText($(el).text())).get().filter(Boolean);
-    const h2Tags = $('h2').map((_, el) => cleanText($(el).text())).get().filter(Boolean);
-    const h3Tags = $('h3').map((_, el) => cleanText($(el).text())).get().filter(Boolean);
-
-    // Extract main content text
-    const contentText = cleanText($('body').text());
-    const wordCount = countWords(contentText);
-
-    // Check for schema markup
+    // Check for schema markup FIRST (before scripts are removed)
     const schemaScripts = $('script[type="application/ld+json"]');
     const hasSchema = schemaScripts.length > 0;
     const schemaTypes: string[] = [];
@@ -80,6 +63,29 @@ export async function extractPageData(url: string, useCache: boolean = true): Pr
         }
       });
     }
+
+    // Extract title
+    const title = $('title').first().text().trim() ||
+                  $('meta[property="og:title"]').attr('content') ||
+                  $('h1').first().text().trim() ||
+                  'No title found';
+
+    // Extract meta description
+    const metaDescription = $('meta[name="description"]').attr('content') ||
+                           $('meta[property="og:description"]').attr('content') ||
+                           '';
+
+    // Extract heading tags
+    const h1Tags = $('h1').map((_, el) => cleanText($(el).text())).get().filter(Boolean);
+    const h2Tags = $('h2').map((_, el) => cleanText($(el).text())).get().filter(Boolean);
+    const h3Tags = $('h3').map((_, el) => cleanText($(el).text())).get().filter(Boolean);
+
+    // Now remove scripts for clean text extraction
+    $('script, style, noscript, iframe').remove();
+
+    // Extract main content text
+    const contentText = cleanText($('body').text());
+    const wordCount = countWords(contentText);
 
     // Count images
     const imageCount = $('img').length;
