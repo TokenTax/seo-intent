@@ -147,5 +147,7 @@ export class Fetcher {
   }
 }
 
-// Export singleton instance
-export const fetcher = new Fetcher();
+// Export singleton instance with environment-configurable user agent
+export const fetcher = new Fetcher({
+  userAgent: process.env.SCRAPER_USER_AGENT,
+});
