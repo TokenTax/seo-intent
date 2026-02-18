@@ -1,3 +1,5 @@
+import { SchemaValidationSummary } from '../schema/validator';
+
 export interface PageData {
   url: string;
   title: string;
@@ -9,6 +11,7 @@ export interface PageData {
   wordCount: number;
   hasSchema: boolean;
   schemaTypes: string[];
+  schemaValidation?: SchemaValidationSummary;
   imageCount: number;
   hasVideo: boolean;
   hasFAQ: boolean;

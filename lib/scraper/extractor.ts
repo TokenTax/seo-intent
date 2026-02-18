@@ -2,6 +2,7 @@ import { fetcher } from './fetcher';
 import { cleanText, countWords } from './parser';
 import { PageData } from './types';
 import { cache } from '../cache/cache-factory';
+import { validateSchemas } from '../schema/validator';
 import * as cheerio from 'cheerio';
 import crypto from 'crypto';
 
@@ -37,32 +38,16 @@ export async function extractPageData(url: string, useCache: boolean = true): Pr
     // Fetch HTML
     const html = await fetcher.fetchHTML(url);
 
-    // Parse with Cheerio but DON'T remove scripts yet (we need them for schema extraction)
+    // Validate schema markup (validates against schema.org standards)
+    const schemaValidation = validateSchemas(html);
+    console.log(`[Extractor] Schema validation: ${schemaValidation.validSchemas}/${schemaValidation.totalSchemas} valid, ${schemaValidation.totalErrors} errors, ${schemaValidation.totalWarnings} warnings`);
+
+    // Parse with Cheerio but DON'T remove scripts yet (we need them for other extraction)
     const $ = cheerio.load(html);
 
-    // Check for schema markup FIRST (before scripts are removed)
-    const schemaScripts = $('script[type="application/ld+json"]');
-    const hasSchema = schemaScripts.length > 0;
-    const schemaTypes: string[] = [];
-
-    if (hasSchema) {
-      schemaScripts.each((_, el) => {
-        try {
-          const schemaData = JSON.parse($(el).html() || '{}');
-          const type = schemaData['@type'] || (Array.isArray(schemaData['@graph'])
-            ? schemaData['@graph'].map((item: any) => item['@type']).filter(Boolean)
-            : []);
-
-          if (Array.isArray(type)) {
-            schemaTypes.push(...type);
-          } else if (type) {
-            schemaTypes.push(type);
-          }
-        } catch {
-          // Invalid JSON, skip
-        }
-      });
-    }
+    // Use validated schema types from the validator
+    const hasSchema = schemaValidation.totalSchemas > 0;
+    const schemaTypes = schemaValidation.schemaTypes;
 
     // Extract title
     const title = $('title').first().text().trim() ||
@@ -138,6 +123,7 @@ export async function extractPageData(url: string, useCache: boolean = true): Pr
       wordCount,
       hasSchema,
       schemaTypes: [...new Set(schemaTypes)],
+      schemaValidation,
       imageCount,
       hasVideo,
       hasFAQ,

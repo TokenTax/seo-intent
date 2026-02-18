@@ -7,7 +7,14 @@
       "Bash(npm run build:*)",
       "Bash(test:*)",
       "Bash(npx tsc:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebFetch(domain:tokentax.co)",
+      "Bash(npx tsx:*)",
+      "Bash(source:*)",
+      "Bash(USE_SCRAPINGBEE=true SCRAPINGBEE_API_KEY=\"$SCRAPINGBEE_API_KEY\" npx tsx:*)",
+      "Bash(python3:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd reanalyze button to report display\n\nAdds an orange \"Reanalyze\" button to the results display that re-runs the analysis with the same parameters \\(keyword, target URL, and model\\) without reloading the page. This provides a quick way to get fresh results while preserving the analysis context.\n\nThe button appears between \"Download Report\" and \"New Analysis\" buttons.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

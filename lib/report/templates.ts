@@ -238,7 +238,44 @@ export function generateYourPageSection(report: AnalysisReport): string {
   section += `- **Has Video:** ${page.hasVideo ? 'Yes' : 'No'}\n`;
   section += `- **Has FAQ:** ${page.hasFAQ ? 'Yes' : 'No'}\n`;
   section += `- **Has Tables:** ${page.hasTables ? 'Yes' : 'No'}\n`;
-  section += `- **Schema Types:** ${page.schemaTypes.join(', ') || 'None'}\n\n`;
+  section += `- **Schema Types:** ${page.schemaTypes.join(', ') || 'None'}\n`;
+
+  // Add detailed schema validation results
+  if (page.schemaValidation && page.schemaValidation.totalSchemas > 0) {
+    section += `\n#### Schema Validation\n\n`;
+    section += `- **Total Schemas:** ${page.schemaValidation.totalSchemas}\n`;
+    section += `- **Valid:** ${page.schemaValidation.validSchemas} ✓\n`;
+    section += `- **Invalid:** ${page.schemaValidation.invalidSchemas} ${page.schemaValidation.invalidSchemas > 0 ? '⚠️' : ''}\n`;
+    section += `- **Errors:** ${page.schemaValidation.totalErrors} ${page.schemaValidation.totalErrors > 0 ? '❌' : '✓'}\n`;
+    section += `- **Warnings:** ${page.schemaValidation.totalWarnings} ${page.schemaValidation.totalWarnings > 0 ? '⚠️' : '✓'}\n`;
+
+    // Show details for each schema if there are errors or warnings
+    if (page.schemaValidation.totalErrors > 0 || page.schemaValidation.totalWarnings > 0) {
+      section += `\n**Validation Details:**\n\n`;
+      page.schemaValidation.results.forEach((result, index) => {
+        if (result.errors.length > 0 || result.warnings.length > 0) {
+          section += `**Schema ${index + 1}: ${result.schemaType}**\n`;
+
+          if (result.errors.length > 0) {
+            section += `- Errors:\n`;
+            result.errors.forEach(err => {
+              section += `  - ❌ ${err.message}\n`;
+            });
+          }
+
+          if (result.warnings.length > 0) {
+            section += `- Warnings:\n`;
+            result.warnings.forEach(warn => {
+              section += `  - ⚠️ ${warn.message}\n`;
+            });
+          }
+          section += `\n`;
+        }
+      });
+    }
+  }
+
+  section += `\n`;
 
   section += `### Critical Gaps\n\n`;
   report.recommendations.criticalGaps.forEach(gap => {
