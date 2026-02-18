@@ -116,7 +116,13 @@ export default function Home() {
         )}
 
         {/* Results */}
-        {result && <ResultsDisplay markdown={result.markdown} keyword={result.keyword} />}
+        {result && (
+          <ResultsDisplay
+            markdown={result.markdown}
+            keyword={result.keyword}
+            onReanalyze={() => handleAnalyze(formData.keyword, formData.targetUrl, formData.model)}
+          />
+        )}
       </div>
     </div>
   );
