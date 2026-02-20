@@ -123,14 +123,72 @@ export async function captureElementScreenshot(
 }
 
 /**
- * Capture screenshots for multiple page sections with fallback selectors
+ * Capture a single section screenshot with fallback support
+ */
+async function captureSectionScreenshot(
+  url: string,
+  section: ScreenshotSection
+): Promise<SectionScreenshot> {
+  // Skip non-visual selectors (code, scripts, etc.)
+  if (isNonVisualSelector(section.selector)) {
+    console.log(`[Screenshot] Skipping non-visual selector: ${section.selector}`);
+    return {
+      selector: section.selector,
+      strength: section.strength,
+      base64: '',
+      error: 'Non-visual content skipped',
+    };
+  }
+
+  let buffer: Buffer | null = null;
+  let usedSelector = section.selector;
+
+  // Try primary selector first
+  buffer = await captureElementScreenshot(url, section.selector);
+
+  // If primary fails and we have a fallback, try that
+  if (!buffer && section.selectorFallback) {
+    // Skip if fallback is also non-visual
+    if (!isNonVisualSelector(section.selectorFallback)) {
+      console.log(`[Screenshot] Trying fallback selector: ${section.selectorFallback}`);
+      buffer = await captureElementScreenshot(url, section.selectorFallback);
+      usedSelector = section.selectorFallback;
+    }
+  }
+
+  if (buffer) {
+    try {
+      const base64 = await compressAndEncode(buffer);
+      return {
+        selector: usedSelector,
+        strength: section.strength,
+        base64,
+      };
+    } catch (error) {
+      return {
+        selector: usedSelector,
+        strength: section.strength,
+        base64: '',
+        error: `Compression failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  return {
+    selector: section.selector,
+    strength: section.strength,
+    base64: '',
+    error: 'Element not found or screenshot failed',
+  };
+}
+
+/**
+ * Capture screenshots for multiple page sections in parallel
  */
 export async function capturePageSections(
   url: string,
   sections: ScreenshotSection[]
 ): Promise<SectionScreenshot[]> {
-  const results: SectionScreenshot[] = [];
-
   // Skip screenshots for certain domains
   if (shouldSkipScreenshot(url)) {
     console.log(`[Screenshot] Skipping screenshots for ${url} (domain in skip list)`);
@@ -142,63 +200,11 @@ export async function capturePageSections(
     }));
   }
 
-  for (const section of sections) {
-    // Skip non-visual selectors (code, scripts, etc.)
-    if (isNonVisualSelector(section.selector)) {
-      console.log(`[Screenshot] Skipping non-visual selector: ${section.selector}`);
-      results.push({
-        selector: section.selector,
-        strength: section.strength,
-        base64: '',
-        error: 'Non-visual content skipped',
-      });
-      continue;
-    }
-
-    let buffer: Buffer | null = null;
-    let usedSelector = section.selector;
-
-    // Try primary selector first
-    buffer = await captureElementScreenshot(url, section.selector);
-
-    // If primary fails and we have a fallback, try that
-    if (!buffer && section.selectorFallback) {
-      // Skip if fallback is also non-visual
-      if (!isNonVisualSelector(section.selectorFallback)) {
-        console.log(`[Screenshot] Trying fallback selector: ${section.selectorFallback}`);
-        buffer = await captureElementScreenshot(url, section.selectorFallback);
-        usedSelector = section.selectorFallback;
-      }
-    }
-
-    if (buffer) {
-      try {
-        const base64 = await compressAndEncode(buffer);
-        results.push({
-          selector: usedSelector,
-          strength: section.strength,
-          base64,
-        });
-      } catch (error) {
-        results.push({
-          selector: usedSelector,
-          strength: section.strength,
-          base64: '',
-          error: `Compression failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        });
-      }
-    } else {
-      results.push({
-        selector: section.selector,
-        strength: section.strength,
-        base64: '',
-        error: 'Element not found or screenshot failed',
-      });
-    }
-
-    // Small delay between captures to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
+  // Capture all sections in parallel
+  console.log(`[Screenshot] Capturing ${sections.length} sections in parallel for ${url}`);
+  const results = await Promise.all(
+    sections.map(section => captureSectionScreenshot(url, section))
+  );
 
   return results;
 }
