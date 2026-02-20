@@ -23,17 +23,6 @@ export default function Home() {
     setFormData({ keyword, targetUrl, model });
 
     try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 95) {
-            clearInterval(progressInterval);
-            return 95;
-          }
-          return prev + 5;
-        });
-      }, 2000);
-
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
@@ -46,20 +35,89 @@ export default function Home() {
         }),
       });
 
-      clearInterval(progressInterval);
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Analysis failed');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
       }
 
-      setProgress(100);
-      setStage('Complete!');
-      setResult({
-        markdown: data.report.markdown,
-        keyword,
-      });
+      // Check if it's an SSE stream
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('text/event-stream')) {
+        // Handle SSE stream
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('Failed to read response stream');
+        }
+
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Process complete events in the buffer
+          // SSE events are separated by double newlines
+          const events = buffer.split('\n\n');
+
+          // Keep the last part in buffer (might be incomplete)
+          buffer = events.pop() || '';
+
+          for (const eventBlock of events) {
+            if (!eventBlock.trim()) continue;
+
+            const lines = eventBlock.split('\n');
+            let currentEvent = '';
+            let currentData = '';
+
+            for (const line of lines) {
+              if (line.startsWith('event: ')) {
+                currentEvent = line.slice(7);
+              } else if (line.startsWith('data: ')) {
+                currentData = line.slice(6);
+              }
+            }
+
+            if (currentEvent && currentData) {
+              try {
+                const data = JSON.parse(currentData);
+
+                if (currentEvent === 'progress') {
+                  setProgress(data.progress);
+                  setStage(data.stage);
+                } else if (currentEvent === 'complete') {
+                  setProgress(100);
+                  setStage('Complete!');
+                  setResult({
+                    markdown: data.report.markdown,
+                    keyword,
+                  });
+                } else if (currentEvent === 'error') {
+                  throw new Error(data.error || 'Analysis failed');
+                }
+              } catch (parseError) {
+                console.error('Failed to parse SSE data:', parseError, currentData.slice(0, 200));
+              }
+            }
+          }
+        }
+      } else {
+        // Fallback for non-SSE response
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Analysis failed');
+        }
+        setProgress(100);
+        setStage('Complete!');
+        setResult({
+          markdown: data.report.markdown,
+          keyword,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       console.error('Analysis error:', err);

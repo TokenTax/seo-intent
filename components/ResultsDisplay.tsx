@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { useState, useMemo } from 'react';
+import ReactMarkdown, { Components } from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 
 interface ResultsDisplayProps {
   markdown: string;
@@ -11,6 +12,71 @@ interface ResultsDisplayProps {
 
 export default function ResultsDisplay({ markdown, keyword, onReanalyze }: ResultsDisplayProps) {
   const [copied, setCopied] = useState(false);
+
+  // Allow data: URIs for base64 images (react-markdown v9 blocks them by default)
+  const urlTransform = (url: string) => {
+    // Allow data: URIs (base64 images)
+    if (url.startsWith('data:')) {
+      return url;
+    }
+    // Allow http/https URLs
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Allow relative URLs
+    if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+      return url;
+    }
+    // Block other protocols for security
+    return '';
+  };
+
+  // Custom components for ReactMarkdown to handle images in details
+  const components: Components = useMemo(() => ({
+    img: ({ src, alt, ...props }) => (
+      <img
+        src={src}
+        alt={alt || ''}
+        style={{
+          maxWidth: '100%',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          marginTop: '8px',
+          display: 'block',
+        }}
+        {...props}
+      />
+    ),
+    details: ({ children, ...props }) => (
+      <details
+        style={{
+          marginTop: '8px',
+          marginBottom: '16px',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}
+        {...props}
+      >
+        {children}
+      </details>
+    ),
+    summary: ({ children, ...props }) => (
+      <summary
+        style={{
+          padding: '8px 12px',
+          cursor: 'pointer',
+          backgroundColor: '#f9fafb',
+          fontWeight: 500,
+          fontSize: '14px',
+          color: '#6366f1',
+        }}
+        {...props}
+      >
+        {children}
+      </summary>
+    ),
+  }), []);
 
   const handleDownload = () => {
     const blob = new Blob([markdown], { type: 'text/markdown' });
@@ -139,7 +205,13 @@ export default function ResultsDisplay({ markdown, keyword, onReanalyze }: Resul
       {/* Markdown content */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
         <div className="markdown-body prose dark:prose-invert max-w-none">
-          <ReactMarkdown>{markdown}</ReactMarkdown>
+          <ReactMarkdown
+            rehypePlugins={[rehypeRaw]}
+            components={components}
+            urlTransform={urlTransform}
+          >
+            {markdown}
+          </ReactMarkdown>
         </div>
       </div>
     </div>

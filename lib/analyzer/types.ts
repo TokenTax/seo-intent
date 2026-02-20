@@ -9,11 +9,19 @@ export interface IntentAnalysis {
   reasoning: string;
 }
 
+export interface StrengthWithSelector {
+  description: string;
+  selector: string;
+  selectorFallback?: string;
+  screenshot?: string;       // Base64 JPEG (filled after capture)
+  screenshotError?: string;
+}
+
 export interface PageAnalysis {
   position: number;
   url: string;
   title: string;
-  strengths: string[];
+  strengths: StrengthWithSelector[];
   contentType: string;
   keyElements: string[];
   targetAudience: string;

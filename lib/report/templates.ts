@@ -1,4 +1,16 @@
-import { AnalysisReport } from '../analyzer/types';
+import { AnalysisReport, StrengthWithSelector } from '../analyzer/types';
+
+/**
+ * Escape HTML special characters for safe embedding in attributes
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 /**
  * Format date for display
@@ -76,9 +88,19 @@ export function generateTopPagesSection(report: AnalysisReport): string {
     section += `- **Word Count:** ${analysis.pageData.wordCount}\n`;
     section += `- **Target Audience:** ${analysis.targetAudience}\n\n`;
 
-    section += `**Strengths:**\n`;
-    analysis.strengths.forEach(strength => {
-      section += `- ${strength}\n`;
+    section += `**Strengths:**\n\n`;
+    analysis.strengths.forEach((strength: StrengthWithSelector) => {
+      section += `- ${strength.description}\n`;
+
+      // Show screenshot if available
+      if (strength.screenshot) {
+        section += `\n`;
+        section += `  <details>\n`;
+        section += `  <summary>View Screenshot</summary>\n`;
+        section += `  <p><img src="data:image/jpeg;base64,${strength.screenshot}" alt="${escapeHtml(strength.description)}" /></p>\n`;
+        section += `  </details>\n`;
+        section += `\n`;
+      }
     });
 
     section += `\n**Key Elements:**\n`;
