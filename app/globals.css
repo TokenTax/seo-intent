@@ -30,53 +30,96 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  .animate-shimmer {
+    animation: shimmer 1.5s infinite;
+  }
 }
 
-/* Custom styles for markdown rendering */
-.markdown-body {
-  @apply prose prose-slate max-w-none;
+@layer base {
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
 }
 
-.markdown-body h1 {
-  @apply text-3xl font-bold mt-8 mb-4;
-}
+@layer components {
+  /* Custom styles for markdown rendering */
+  .markdown-body {
+    @apply prose prose-slate max-w-none;
+  }
 
-.markdown-body h2 {
-  @apply text-2xl font-bold mt-6 mb-3 border-b pb-2;
-}
+  .markdown-body h1 {
+    @apply text-3xl font-bold mt-8 mb-4;
+  }
 
-.markdown-body h3 {
-  @apply text-xl font-semibold mt-4 mb-2;
-}
+  .markdown-body h2 {
+    @apply text-2xl font-bold mt-6 mb-3 border-b pb-2;
+  }
 
-.markdown-body ul {
-  @apply list-disc list-inside my-2;
-}
+  .markdown-body h3 {
+    @apply text-xl font-semibold mt-4 mb-2;
+  }
 
-.markdown-body ol {
-  @apply list-decimal list-inside my-2;
-}
+  .markdown-body ul {
+    @apply list-disc pl-6 my-2;
+  }
 
-.markdown-body code {
-  @apply bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm;
-}
+  .markdown-body ol {
+    @apply list-decimal pl-6 my-2;
+  }
 
-.markdown-body pre {
-  @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-4;
-}
+  .markdown-body li {
+    @apply my-1;
+  }
 
-.markdown-body blockquote {
-  @apply border-l-4 border-gray-300 pl-4 italic my-4;
-}
+  .markdown-body code {
+    @apply bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm;
+  }
 
-.markdown-body table {
-  @apply w-full border-collapse my-4;
-}
+  .markdown-body pre {
+    @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto my-4;
+  }
 
-.markdown-body th {
-  @apply bg-gray-100 dark:bg-gray-800 p-2 text-left font-semibold;
-}
+  .markdown-body blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic my-4;
+  }
 
-.markdown-body td {
-  @apply border-t p-2;
+  .markdown-body table {
+    @apply w-full border-collapse my-4;
+  }
+
+  .markdown-body th {
+    @apply bg-gray-100 dark:bg-gray-800 p-2 text-left font-semibold;
+  }
+
+  .markdown-body td {
+    @apply border-t p-2;
+  }
+
+  /* Screenshot details/summary styling */
+  .markdown-body details {
+    @apply my-2 rounded-lg border border-gray-200 dark:border-gray-700;
+  }
+
+  .markdown-body details summary {
+    @apply cursor-pointer px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg;
+  }
+
+  .markdown-body details[open] summary {
+    @apply border-b border-gray-200 dark:border-gray-700 rounded-b-none;
+  }
+
+  .markdown-body details img {
+    @apply max-w-full rounded-lg border border-gray-200 dark:border-gray-700 my-2 mx-auto block;
+  }
+
+  .markdown-body details > img,
+  .markdown-body details > div > img {
+    @apply p-2;
+  }
 }

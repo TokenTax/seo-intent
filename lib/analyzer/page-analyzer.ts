@@ -31,6 +31,19 @@ export async function analyzeCompetitorPage(
       throw new Error('Invalid page analysis response');
     }
 
+    // Ensure strengths are in the new format with selectors
+    // If LLM returns old format (string[]), convert it
+    if (Array.isArray(analysis.strengths) && analysis.strengths.length > 0) {
+      if (typeof analysis.strengths[0] === 'string') {
+        // Convert old string format to new object format
+        analysis.strengths = analysis.strengths.map((s: string) => ({
+          description: s,
+          selector: 'main, article, .content',
+          selectorFallback: 'body',
+        }));
+      }
+    }
+
     return {
       position,
       url: pageData.url,

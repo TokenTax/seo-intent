@@ -5,7 +5,8 @@ import { analyzeIntent } from './intent';
 import { analyzeCompetitors } from './competitor';
 import { detectPatterns, generateRecommendations } from './comparator';
 import { detectAIContent } from './ai-detector';
-import { AnalysisReport } from './types';
+import { AnalysisReport, StrengthWithSelector } from './types';
+import { capturePageSections, isScreenshotEnabled, ScreenshotSection } from '../scraper/screenshot';
 
 /**
  * Main orchestrator that runs the complete 6-stage analysis pipeline
@@ -26,7 +27,7 @@ export async function runAnalysis(
   try {
     // Stage 1: Search & Scrape
     onProgress?.('Searching Google and scraping top 5 pages', 10);
-    console.log('[Stage 1/5] Searching and scraping...');
+    console.log('[Stage 1/7] Searching and scraping...');
 
     const searchResults = await searchKeyword(keyword);
     console.log(`Found ${searchResults.length} search results`);
@@ -76,31 +77,74 @@ export async function runAnalysis(
 
     // Stage 2: Intent Analysis
     onProgress?.('Analyzing search intent', 30);
-    console.log('\n[Stage 2/5] Analyzing search intent...');
+    console.log('\n[Stage 2/7] Analyzing search intent...');
 
     const intentAnalysis = await analyzeIntent(keyword, searchResults, llmProvider);
 
     // Stage 3: Competitor Analysis
     onProgress?.('Analyzing top 5 competitor pages', 50);
-    console.log('\n[Stage 3/5] Analyzing competitors...');
+    console.log('\n[Stage 3/7] Analyzing competitors...');
 
     const competitorAnalyses = await analyzeCompetitors(keyword, competitorPages, llmProvider);
 
+    // Stage 3.5: Screenshot Capture (if enabled)
+    if (isScreenshotEnabled()) {
+      onProgress?.('Capturing strength screenshots', 55);
+      console.log('\n[Stage 3.5/7] Capturing screenshots of page strengths...');
+
+      await Promise.all(
+        competitorAnalyses.map(async (analysis) => {
+          // Convert strengths to screenshot sections
+          const sections: ScreenshotSection[] = analysis.strengths.map((strength: StrengthWithSelector) => ({
+            selector: strength.selector,
+            selectorFallback: strength.selectorFallback,
+            strength: strength.description,
+          }));
+
+          try {
+            const screenshots = await capturePageSections(analysis.url, sections);
+
+            // Map screenshots back to strengths
+            for (const screenshot of screenshots) {
+              const matchingStrength = analysis.strengths.find(
+                (s: StrengthWithSelector) => s.description === screenshot.strength
+              );
+              if (matchingStrength) {
+                if (screenshot.base64) {
+                  matchingStrength.screenshot = screenshot.base64;
+                }
+                if (screenshot.error) {
+                  matchingStrength.screenshotError = screenshot.error;
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`[Orchestrator] Screenshot capture failed for ${analysis.url}:`, error);
+            // Continue without screenshots - graceful degradation
+          }
+        })
+      );
+
+      console.log('[Orchestrator] Screenshot capture complete');
+    } else {
+      console.log('[Orchestrator] Screenshot capture disabled (set ENABLE_SCREENSHOTS=true to enable)');
+    }
+
     // Stage 4: Pattern Detection
     onProgress?.('Detecting common patterns', 60);
-    console.log('\n[Stage 4/6] Detecting patterns...');
+    console.log('\n[Stage 4/7] Detecting patterns...');
 
     const patternAnalysis = await detectPatterns(keyword, competitorAnalyses, llmProvider);
 
     // Stage 5: AI Content Detection
     onProgress?.('Analyzing content for AI generation', 75);
-    console.log('\n[Stage 5/6] Detecting AI-generated content...');
+    console.log('\n[Stage 5/7] Detecting AI-generated content...');
 
     const aiContentAnalysis = await detectAIContent(keyword, targetPageData, llmProvider);
 
     // Stage 6: Gap Analysis & Recommendations
     onProgress?.('Generating recommendations', 90);
-    console.log('\n[Stage 6/6] Generating recommendations...');
+    console.log('\n[Stage 6/7] Generating recommendations...');
 
     const recommendations = await generateRecommendations(
       keyword,
